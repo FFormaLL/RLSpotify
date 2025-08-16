@@ -26,4 +26,11 @@ private:
 #ifdef _WIN32
 	void SendMediaKey(WORD virtualKeyCode);
 #endif
+
+	// Input listening state
+	bool prevDpadUp = false;
+	bool prevDpadRight = false;
+	bool prevDpadLeft = false;
+	bool prevDpadDown = false;
+	void SetListenDpadEnabled(bool enabled);
 };

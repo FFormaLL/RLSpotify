@@ -26,7 +26,12 @@ Note: This plugin uses Windows media key events. It is intended primarily for Wi
 2. Add the plugin to your BakkesMod config or load it manually in the BakkesMod console:
    - `plugin load SpotifyController` (replace with your actual DLL name if different)
 
-## Bind your D-pad
+## Two ways to control with D-pad
+
+- Binds (simple; works without code hooks): bind your D-pad buttons to commands.
+- Direct input listening (advanced; no binds required): the plugin hooks the game's `ControllerInput` and reacts to D-pad presses.
+
+### Option A: Bind your D-pad
 
 Use a helper or bind manually.
 
@@ -72,7 +77,17 @@ bind NintendoSwitch_DPad_Right spotify_next
 bind NintendoSwitch_DPad_Left spotify_prev
 ```
 
-You can bind to any key or button; the above are examples for common controller layouts and name variants.
+### Option B: Direct D-pad listening
+
+- Toggle: `spotify_listen_dpad` (default `1`)
+  - When enabled, the plugin listens to `ControllerInput` via `Function TAGame.Car_TA.SetVehicleInput`.
+  - It triggers media keys on rising edges:
+    - Up: play/pause
+    - Right: next
+    - Left: previous
+    - Down: (unused by default)
+
+This mode avoids manual binds and should work regardless of controller name, as it reads input at the game level.
 
 ## Provided commands
 
@@ -84,11 +99,13 @@ You can bind to any key or button; the above are examples for common controller 
 - `spotify_setup_binds_ps`: Apply PlayStation binds (multiple variants)
 - `spotify_setup_binds_nintendo`: Apply Nintendo/Switch binds (multiple variants)
 - `spotify_setup_binds_all`: Apply all of the above
+- `spotify_listen_dpad`: Cvar (1/0) to enable/disable direct D-pad listening
 
 ## How it works
 
 - The plugin registers the commands above as notifiers.
-- Triggering a notifier sends the corresponding Windows media key event (`VK_MEDIA_PLAY_PAUSE`, `VK_MEDIA_NEXT_TRACK`, `VK_MEDIA_PREV_TRACK`).
+- It can optionally hook `SetVehicleInput` and read `ControllerInput` for direct D-pad detection.
+- Triggering a notifier or a detected D-pad press sends the corresponding Windows media key event (`VK_MEDIA_PLAY_PAUSE`, `VK_MEDIA_NEXT_TRACK`, `VK_MEDIA_PREV_TRACK`).
 - Spotify (and most media players) respond to these events even when Rocket League is focused.
 
 ## Troubleshooting
@@ -97,6 +114,7 @@ You can bind to any key or button; the above are examples for common controller 
 - If media keys do nothing, ensure Spotify is running and that system media keys work outside the game (e.g., from your keyboard).
 - Steam Input remaps can override D-pad behavior. If needed, disable Steam Input for Rocket League or adjust your Steam controller layout.
 - Some controller names depend on your drivers and whether Steam Input is translating to XInput. If the helper presets do not work, press buttons while viewing BakkesMod's keybind UI to see the exact names and bind those manually.
+- If direct listening seems inconsistent, try turning `spotify_listen_dpad` off and use binds instead.
 
 ## Platform note
 

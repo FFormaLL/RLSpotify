@@ -54,12 +54,24 @@ void SpotifyControllerPlugin::onLoad()
 		"Apply binds for Xbox, PlayStation, and Nintendo/Switch D-pads",
 		PERMISSION_ALL);
 
+	// Toggle to enable/disable listening to ControllerInput D-pad
+	auto listenCvar = cvarManager->registerCvar("spotify_listen_dpad", "1", "Listen to controller D-pad via ControllerInput hook (1=on,0=off)");
+	listenCvar.addOnValueChanged([this](std::string, CVarWrapper cvar) {
+		SetListenDpadEnabled(cvar.getBoolValue());
+	});
+
+	// Apply initial state
+	SetListenDpadEnabled(listenCvar.getBoolValue());
+
 	cvarManager->log("SpotifyController loaded. Example binds: bind XboxTypeS_DPad_Up spotify_play_pause");
 }
 
 void SpotifyControllerPlugin::onUnload()
 {
-	// Nothing to clean up
+	if (gameWrapper)
+	{
+		gameWrapper->UnhookEvent("Function TAGame.Car_TA.SetVehicleInput");
+	}
 }
 
 void SpotifyControllerPlugin::PlayPause()
@@ -151,6 +163,38 @@ void SpotifyControllerPlugin::SetupBindsAll()
 	SetupBindsPlayStation();
 	SetupBindsNintendo();
 	cvarManager->log("SpotifyController: All controller binds applied (Xbox + PlayStation + Nintendo/Switch).");
+}
+
+void SpotifyControllerPlugin::SetListenDpadEnabled(bool enabled)
+{
+	if (!gameWrapper) return;
+	gameWrapper->UnhookEvent("Function TAGame.Car_TA.SetVehicleInput");
+	if (!enabled) return;
+
+	prevDpadUp = prevDpadRight = prevDpadLeft = prevDpadDown = false;
+	gameWrapper->HookEventWithCaller<CarWrapper>(
+		"Function TAGame.Car_TA.SetVehicleInput",
+		[this](CarWrapper /*caller*/, void* params, std::string /*eventName*/) {
+			if (params == nullptr) return;
+			ControllerInput* input = reinterpret_cast<ControllerInput*>(params);
+			if (!input) return;
+
+			bool up = input->DPad_Up;
+			bool right = input->DPad_Right;
+			bool left = input->DPad_Left;
+			bool down = input->DPad_Down;
+
+			if (up && !prevDpadUp) { PlayPause(); }
+			if (right && !prevDpadRight) { NextTrack(); }
+			if (left && !prevDpadLeft) { PreviousTrack(); }
+			// optionally map down to stop if desired
+			// if (down && !prevDpadDown) { /* Send stop: VK_MEDIA_STOP */ }
+
+			prevDpadUp = up;
+			prevDpadRight = right;
+			prevDpadLeft = left;
+			prevDpadDown = down;
+		});
 }
 
 #ifdef _WIN32
