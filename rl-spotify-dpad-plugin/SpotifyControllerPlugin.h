@@ -18,6 +18,10 @@ private:
 	void NextTrack();
 	void PreviousTrack();
 	void SetupDefaultBinds();
+	void SetupBindsXbox();
+	void SetupBindsPlayStation();
+	void SetupBindsNintendo();
+	void SetupBindsAll();
 
 #ifdef _WIN32
 	void SendMediaKey(WORD virtualKeyCode);

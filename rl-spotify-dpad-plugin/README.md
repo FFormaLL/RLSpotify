@@ -6,7 +6,7 @@ Control Spotify (or any media player that honors system media keys) using your c
 - Next track
 - Previous track
 
-Note: This plugin uses Windows media key events. It requires running Rocket League + BakkesMod on Windows.
+Note: This plugin uses Windows media key events. It is intended primarily for Windows (Rocket League + BakkesMod on Windows).
 
 ## Build
 
@@ -28,18 +28,51 @@ Note: This plugin uses Windows media key events. It requires running Rocket Leag
 
 ## Bind your D-pad
 
-Use the one-shot helper, or bind manually.
+Use a helper or bind manually.
 
-- Helper:
-  - `spotify_setup_binds`
-- Manual:
+- All controllers (apply all three presets):
+  - `spotify_setup_binds_all`
+- Xbox only:
+  - `spotify_setup_binds_xbox` or `spotify_setup_binds` (alias)
+- PlayStation only:
+  - `spotify_setup_binds_ps`
+- Nintendo/Switch only:
+  - `spotify_setup_binds_nintendo`
+
+Manual examples:
 ```
+# Xbox
 bind XboxTypeS_DPad_Up spotify_play_pause
 bind XboxTypeS_DPad_Right spotify_next
 bind XboxTypeS_DPad_Left spotify_prev
+
+# PlayStation (variants; depends on drivers/Steam Input)
+bind PS4_DPad_Up spotify_play_pause
+bind PS4_DPad_Right spotify_next
+bind PS4_DPad_Left spotify_prev
+bind PS5_DPad_Up spotify_play_pause
+bind PS5_DPad_Right spotify_next
+bind PS5_DPad_Left spotify_prev
+bind DualShock4_DPad_Up spotify_play_pause
+bind DualShock4_DPad_Right spotify_next
+bind DualShock4_DPad_Left spotify_prev
+bind DualSense_DPad_Up spotify_play_pause
+bind DualSense_DPad_Right spotify_next
+bind DualSense_DPad_Left spotify_prev
+
+# Nintendo/Switch (variants; depends on drivers/Steam Input)
+bind SwitchPro_DPad_Up spotify_play_pause
+bind SwitchPro_DPad_Right spotify_next
+bind SwitchPro_DPad_Left spotify_prev
+bind NintendoSwitchPro_DPad_Up spotify_play_pause
+bind NintendoSwitchPro_DPad_Right spotify_next
+bind NintendoSwitchPro_DPad_Left spotify_prev
+bind NintendoSwitch_DPad_Up spotify_play_pause
+bind NintendoSwitch_DPad_Right spotify_next
+bind NintendoSwitch_DPad_Left spotify_prev
 ```
 
-You can bind to any key or button; the above are just examples for Xbox-style controllers.
+You can bind to any key or button; the above are examples for common controller layouts and name variants.
 
 ## Provided commands
 
@@ -47,6 +80,10 @@ You can bind to any key or button; the above are just examples for Xbox-style co
 - `spotify_next`: Next track
 - `spotify_prev`: Previous track
 - `spotify_setup_binds`: Apply default Xbox D-pad binds (Up/Right/Left)
+- `spotify_setup_binds_xbox`: Apply Xbox binds
+- `spotify_setup_binds_ps`: Apply PlayStation binds (multiple variants)
+- `spotify_setup_binds_nintendo`: Apply Nintendo/Switch binds (multiple variants)
+- `spotify_setup_binds_all`: Apply all of the above
 
 ## How it works
 
@@ -59,7 +96,8 @@ You can bind to any key or button; the above are just examples for Xbox-style co
 - If binds do not trigger, verify your key name. Use BakkesMod's keybind helper or try binding to a keyboard key first to validate.
 - If media keys do nothing, ensure Spotify is running and that system media keys work outside the game (e.g., from your keyboard).
 - Steam Input remaps can override D-pad behavior. If needed, disable Steam Input for Rocket League or adjust your Steam controller layout.
+- Some controller names depend on your drivers and whether Steam Input is translating to XInput. If the helper presets do not work, press buttons while viewing BakkesMod's keybind UI to see the exact names and bind those manually.
 
 ## Platform note
 
-- Windows only. If you need Linux support, you would need to adapt the code to call an external controller (e.g., `playerctl` via DBus/MPRIS) or run a small companion process. If you want that, let me know.
+- Windows only (for now). If you want Linux support, we can add an MPRIS/`playerctl` backend or a small companion process.
