@@ -2,7 +2,12 @@
 #include <vector>
 #include <string>
 
-BAKKESMOD_PLUGIN(SpotifyControllerPlugin, "Control Spotify with controller D-pad via media keys", "1.0.0", 0)
+#ifdef _WIN32
+#include <Xinput.h>
+#pragma comment(lib, "Xinput.lib")
+#endif
+
+BAKKESMOD_PLUGIN(SpotifyControllerPlugin, "Control Spotify with controller D-pad via media keys", "1.1.0", 0)
 
 void SpotifyControllerPlugin::onLoad()
 {
@@ -54,16 +59,23 @@ void SpotifyControllerPlugin::onLoad()
 		"Apply binds for Xbox, PlayStation, and Nintendo/Switch D-pads",
 		PERMISSION_ALL);
 
-	// Toggle to enable/disable listening to ControllerInput D-pad
-	auto listenCvar = cvarManager->registerCvar("spotify_listen_dpad", "1", "Listen to controller D-pad via ControllerInput hook (1=on,0=off)");
+	// ControllerInput hook toggle (default off, to prefer Windows listener)
+	auto listenCvar = cvarManager->registerCvar("spotify_listen_dpad", "0", "Listen to in-game ControllerInput D-pad (1=on,0=off)");
 	listenCvar.addOnValueChanged([this](std::string, CVarWrapper cvar) {
 		SetListenDpadEnabled(cvar.getBoolValue());
 	});
 
-	// Apply initial state
-	SetListenDpadEnabled(listenCvar.getBoolValue());
+#ifdef _WIN32
+	// Windows XInput listener toggle (default on)
+	auto xinputCvar = cvarManager->registerCvar("spotify_listen_xinput", "1", "Listen to Windows XInput D-pad (1=on,0=off)");
+	xinputCvar.addOnValueChanged([this](std::string, CVarWrapper cvar) {
+		bool enabled = cvar.getBoolValue();
+		if (enabled) StartXInputListener(); else StopXInputListener();
+	});
+	if (xinputCvar.getBoolValue()) StartXInputListener();
+#endif
 
-	cvarManager->log("SpotifyController loaded. Example binds: bind XboxTypeS_DPad_Up spotify_play_pause");
+	cvarManager->log("SpotifyController loaded. Use spotify_listen_xinput (Windows) or spotify_listen_dpad (in-game) to choose listening mode.");
 }
 
 void SpotifyControllerPlugin::onUnload()
@@ -72,6 +84,9 @@ void SpotifyControllerPlugin::onUnload()
 	{
 		gameWrapper->UnhookEvent("Function TAGame.Car_TA.SetVehicleInput");
 	}
+#ifdef _WIN32
+	StopXInputListener();
+#endif
 }
 
 void SpotifyControllerPlugin::PlayPause()
@@ -196,6 +211,68 @@ void SpotifyControllerPlugin::SetListenDpadEnabled(bool enabled)
 			prevDpadDown = down;
 		});
 }
+
+#ifdef _WIN32
+void SpotifyControllerPlugin::StartXInputListener()
+{
+	StopXInputListener();
+	xinputStopFlag = false;
+	xinputThread = std::thread([this]() {
+		// Poll up to 4 controllers
+		while (!xinputStopFlag)
+		{
+			for (DWORD i = 0; i < 4; ++i)
+			{
+				XINPUT_STATE state{};
+				DWORD res = XInputGetState(i, &state);
+				if (res == ERROR_SUCCESS)
+				{
+					WORD mask = state.Gamepad.wButtons;
+					const WORD upMask = XINPUT_GAMEPAD_DPAD_UP;
+					const WORD rightMask = XINPUT_GAMEPAD_DPAD_RIGHT;
+					const WORD leftMask = XINPUT_GAMEPAD_DPAD_LEFT;
+					const WORD downMask = XINPUT_GAMEPAD_DPAD_DOWN;
+
+					bool up = (mask & upMask) != 0;
+					bool right = (mask & rightMask) != 0;
+					bool left = (mask & leftMask) != 0;
+					bool down = (mask & downMask) != 0;
+
+					WORD prev = prevXInputDpadMask[i];
+					bool prevUp = (prev & upMask) != 0;
+					bool prevRight = (prev & rightMask) != 0;
+					bool prevLeft = (prev & leftMask) != 0;
+					bool prevDown = (prev & downMask) != 0;
+
+					if (up && !prevUp) { PlayPause(); }
+					if (right && !prevRight) { NextTrack(); }
+					if (left && !prevLeft) { PreviousTrack(); }
+					// if (down && !prevDown) { /* optional stop */ }
+
+					prevXInputDpadMask[i] = static_cast<unsigned short>(mask & (upMask | rightMask | leftMask | downMask));
+				}
+				else
+				{
+					prevXInputDpadMask[i] = 0;
+				}
+			}
+			// Sleep a bit to reduce CPU usage; input latency remains low
+			Sleep(8);
+		}
+	});
+}
+
+void SpotifyControllerPlugin::StopXInputListener()
+{
+	if (xinputThread.joinable())
+	{
+		xinputStopFlag = true;
+		xinputThread.join();
+	}
+	xinputStopFlag = false;
+	for (int i = 0; i < 4; ++i) prevXInputDpadMask[i] = 0;
+}
+#endif
 
 #ifdef _WIN32
 void SpotifyControllerPlugin::SendMediaKey(WORD vk)

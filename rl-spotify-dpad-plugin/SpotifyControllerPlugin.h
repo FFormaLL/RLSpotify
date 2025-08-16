@@ -6,6 +6,8 @@
 #endif
 
 #include "bakkesmod/plugin/bakkesmodplugin.h"
+#include <thread>
+#include <atomic>
 
 class SpotifyControllerPlugin final : public BakkesMod::Plugin::BakkesModPlugin
 {
@@ -27,10 +29,19 @@ private:
 	void SendMediaKey(WORD virtualKeyCode);
 #endif
 
-	// Input listening state
+	// Input listening state (in-game ControllerInput)
 	bool prevDpadUp = false;
 	bool prevDpadRight = false;
 	bool prevDpadLeft = false;
 	bool prevDpadDown = false;
 	void SetListenDpadEnabled(bool enabled);
+
+#ifdef _WIN32
+	// Windows XInput listener
+	void StartXInputListener();
+	void StopXInputListener();
+	std::thread xinputThread;
+	std::atomic<bool> xinputStopFlag{false};
+	unsigned short prevXInputDpadMask[4] = {0, 0, 0, 0};
+#endif
 };
